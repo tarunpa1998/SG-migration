@@ -1,12 +1,19 @@
 import { Metadata } from 'next';
-import NewsDetailPage from './news-detail';
+import NewsDetail from './news-detail';
 import { notFound } from 'next/navigation';
+
+interface NewsPageProps {
+  params: Promise<{
+    slug: string;
+  }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
 
 // Fetch news item data
 async function getNewsItem(slug: string) {
   try {
     const response = await fetch(`${process.env.API_BASE_URL || 'http://localhost:5000'}/api/news/${slug}`, {
-      cache: 'no-store'
+      next: { revalidate: 3600 } // Revalidate every hour
     });
     
     if (!response.ok) {
@@ -20,11 +27,11 @@ async function getNewsItem(slug: string) {
   }
 }
 
-// Fetch all news
+// Fetch all news items
 async function getAllNews() {
   try {
     const response = await fetch(`${process.env.API_BASE_URL || 'http://localhost:5000'}/api/news`, {
-      cache: 'no-store'
+      next: { revalidate: 3600 } // Revalidate every hour
     });
     
     if (!response.ok) {
@@ -38,54 +45,45 @@ async function getAllNews() {
   }
 }
 
-// Generate metadata for the page dynamically based on the news article data
+// Generate metadata for the page dynamically based on the news item data
 export async function generateMetadata({
   params,
-}: {
-  params: { slug: string };
-}): Promise<Metadata> {
-  // Access slug directly from params
-  const slug = params.slug;
-  
-  // Get news data
+}: NewsPageProps): Promise<Metadata> {
+  // Ensure params is properly typed and accessed
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
   const newsItem = await getNewsItem(slug);
   
   if (!newsItem) {
     return {
-      title: 'News Article Not Found | Study Guru',
-      description: 'The requested news article could not be found.'
+      title: 'News Not Found | Study Guru',
+      description: 'The news item you were looking for could not be found.',
     };
   }
   
+  // Return the metadata
   return {
-    title: newsItem.seo?.metaTitle || `${newsItem.title} | Study Guru News`,
-    description: newsItem.seo?.metaDescription || newsItem.summary,
-    keywords: newsItem.seo?.keywords || [],
-    openGraph: {
-      title: newsItem.seo?.metaTitle || `${newsItem.title} | Study Guru News`,
-      description: newsItem.seo?.metaDescription || newsItem.summary,
-      images: newsItem.image ? [{ url: newsItem.image }] : [],
-      type: 'article',
-    },
+    title: `${newsItem.title} | Study Guru News`,
+    description: newsItem.summary || 'Read the latest news on Study Guru',
+    // Add more metadata as needed
   };
 }
 
 export default async function NewsPage({
   params,
-}: {
-  params: { slug: string };
-}) {
-  // Access slug directly from params
-  const slug = params.slug;
-  
-  // Get news data
+}: NewsPageProps) {
+  // Ensure params is properly typed and accessed
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
   const newsItem = await getNewsItem(slug);
   
   if (!newsItem) {
     return notFound();
   }
   
+  // Fetch all news items for related news section
   const allNews = await getAllNews();
   
-  return <NewsDetailPage newsItem={newsItem} allNews={allNews} />;
+  return <NewsDetail newsItem={newsItem} allNews={allNews} />;
 }
+

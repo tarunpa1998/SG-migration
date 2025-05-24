@@ -2,8 +2,15 @@ import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
-import ScholarshipDetailClient from './scholarship-detail-client';
+import ScholarshipDetail from './scholarship-detail-client';
 import { headers } from 'next/headers';
+
+interface ScholarshipPageProps {
+  params: Promise<{
+    slug: string;
+  }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
 
 // Types
 interface Scholarship {
@@ -33,11 +40,11 @@ interface Scholarship {
   isRenewable?: boolean;
 }
 
-// Fetch scholarship data server-side with ISR
-async function getScholarship(slug: string): Promise<Scholarship | null> {
+// Fetch scholarship data
+async function getScholarship(slug: string) {
   try {
-    const response = await fetch(`http://localhost:5000/api/scholarships/${slug}`, {
-      cache: 'no-store'
+    const response = await fetch(`${process.env.API_BASE_URL || 'http://localhost:5000'}/api/scholarships/${slug}`, {
+      next: { revalidate: 3600 } // Revalidate every hour
     });
     
     if (!response.ok) {
@@ -46,95 +53,75 @@ async function getScholarship(slug: string): Promise<Scholarship | null> {
     
     return await response.json();
   } catch (error) {
-    console.error('Failed to fetch scholarship:', error);
+    console.error('Error fetching scholarship:', error);
     return null;
   }
 }
 
-// Get related scholarships
-async function getRelatedScholarships(country: string, currentSlug: string): Promise<Scholarship[]> {
+// Fetch all scholarships
+async function getAllScholarships() {
   try {
-    const response = await fetch('http://localhost:5000/api/scholarships', {
-      cache: 'no-store'
+    const response = await fetch(`${process.env.API_BASE_URL || 'http://localhost:5000'}/api/scholarships`, {
+      next: { revalidate: 3600 } // Revalidate every hour
     });
     
     if (!response.ok) {
       return [];
     }
     
-    const scholarships: Scholarship[] = await response.json();
-    return scholarships
-      .filter(s => s.country === country && s.slug !== currentSlug)
-      .slice(0, 3);
-      
+    return await response.json();
   } catch (error) {
-    console.error('Failed to fetch related scholarships:', error);
+    console.error('Error fetching all scholarships:', error);
     return [];
   }
 }
 
-// Generate metadata for SEO
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  try {
-    // Extract the slug directly to avoid params.slug access error
-    const slug = String(params.slug);
-    
-    // Use the slug to fetch scholarship data
-    const scholarship = await getScholarship(slug);
-    
-    if (!scholarship) {
-      return {
-        title: 'Scholarship Not Found | Study Guru',
-        description: 'The requested scholarship could not be found.'
-      };
-    }
-    
+// Generate metadata for the page dynamically based on the scholarship data
+export async function generateMetadata({
+  params,
+}: ScholarshipPageProps): Promise<Metadata> {
+  // Ensure params is properly typed and accessed
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
+  const scholarship = await getScholarship(slug);
+  
+  if (!scholarship) {
     return {
-      title: scholarship.seo?.metaTitle || `${scholarship.title} | Study Guru`,
-      description: scholarship.seo?.metaDescription || scholarship.description.substring(0, 160),
-      keywords: scholarship.seo?.keywords || scholarship.tags.join(', '),
-      openGraph: {
-        title: scholarship.title,
-        description: scholarship.description.substring(0, 160),
-        type: 'website',
-      }
-    };
-  } catch (error) {
-    console.error('Error generating metadata:', error);
-    return {
-      title: 'Scholarship | Study Guru',
-      description: 'Find scholarships for your international education journey.'
+      title: 'Scholarship Not Found | Study Guru',
+      description: 'The scholarship you were looking for could not be found.',
     };
   }
+  
+  // Return the metadata
+  return {
+    title: `${scholarship.title} | Study Guru Scholarships`,
+    description: scholarship.overview || scholarship.description || 'Find details about this scholarship on Study Guru',
+    // Add more metadata as needed
+  };
 }
 
-// Server Component for Scholarship Page
-export default async function ScholarshipPage({ params }: { params: { slug: string } }) {
-  // To avoid params.slug access error, extract it as string first
-  const slug = String(params.slug);
+export default async function ScholarshipPage({
+  params,
+}: ScholarshipPageProps) {
+  // Ensure params is properly typed and accessed
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
+  const scholarship = await getScholarship(slug);
   
-  try {
-    // Use extracted slug instead of directly accessing params.slug
-    const scholarship = await getScholarship(slug);
-    
-    if (!scholarship) {
-      return notFound();
-    }
-    
-    // Get related scholarships from the same country
-    const relatedScholarships = await getRelatedScholarships(scholarship.country, slug);
-    
-    // Add any missing properties to match Vite app schema
-    const enhancedScholarship = {
-      ...scholarship,
-      duration: scholarship.duration || 'Variable',
-      level: scholarship.level || 'Multiple',
-      isRenewable: scholarship.isRenewable || false
-    };
-    
-    return <ScholarshipDetailClient scholarship={enhancedScholarship} relatedScholarships={relatedScholarships} />;
-  } catch (error) {
-    console.error('Error in scholarship page:', error);
+  if (!scholarship) {
     return notFound();
   }
+  
+  // Fetch all scholarships for related scholarships section
+  const allScholarships = await getAllScholarships();
+  
+  // Filter to get related scholarships (same country, excluding current one)
+  const relatedScholarships = allScholarships
+    .filter((s: Scholarship) => 
+      s.country === scholarship.country && s.slug !== scholarship.slug
+    )
+    .slice(0, 3); // Limit to 3 related scholarships
+  
+  return <ScholarshipDetail scholarship={scholarship} relatedScholarships={relatedScholarships} />;
 }
+

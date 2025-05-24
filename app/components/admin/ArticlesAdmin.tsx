@@ -316,13 +316,27 @@ const ArticlesAdmin = () => {
           }
         });
       } else {
-        setEditForm({
-          ...editForm,
-          [parent]: {
-            ...editForm[parentKey],
-            [child]: value
-          }
-        });
+        // Check if the parent property exists and is an object before spreading
+        const parentValue = editForm[parentKey];
+        if (parentValue && typeof parentValue === 'object' && !Array.isArray(parentValue)) {
+          // Use type assertion to tell TypeScript this is a Record<string, any>
+          const safeParentValue = parentValue as Record<string, any>;
+          setEditForm({
+            ...editForm,
+            [parent]: {
+              ...safeParentValue,
+              [child]: value
+            }
+          });
+        } else {
+          // If parent doesn't exist or isn't an object, create a new object
+          setEditForm({
+            ...editForm,
+            [parent]: {
+              [child]: value
+            }
+          });
+        }
       }
     } else {
       setEditForm({
@@ -812,3 +826,5 @@ const ArticlesAdmin = () => {
 };
 
 export default ArticlesAdmin;
+
+

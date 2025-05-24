@@ -1,133 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// This is a catch-all API route that proxies requests to the Express backend
+// This acts as a catch-all proxy to the Express backend
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const path = params.path.join('/');
+  const resolvedParams = await params;
+  const pathSegments = resolvedParams.path || [];
+  const apiPath = `/${pathSegments.join('/')}`;
+  const { search } = request.nextUrl;
+  
   try {
-    // Forward the request to the Express backend
-    const url = `/direct-api/${path}${request.nextUrl.search}`;
-    const res = await fetch(url, {
+    // Forward the request to our Express backend
+    const apiUrl = `http://localhost:5000/api${apiPath}${search}`;
+    const response = await fetch(apiUrl, {
       headers: {
         'Content-Type': 'application/json',
-        ...(request.headers.has('Authorization') && 
-           { 'Authorization': request.headers.get('Authorization') as string }),
       },
     });
-
-    // Get the response data
-    const data = await res.json();
-
-    // Return the response
+    
+    const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error(`Error proxying GET request to /api/${path}:`, error);
+    console.error('API proxy error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch data from the server' },
+      { error: 'Failed to fetch data from API' },
       { status: 500 }
     );
   }
 }
 
+// Add other HTTP methods as needed
 export async function POST(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const path = params.path.join('/');
+  const resolvedParams = await params;
+  const pathSegments = resolvedParams.path || [];
+  const apiPath = `/${pathSegments.join('/')}`;
+  const { search } = request.nextUrl;
+  
   try {
-    // Get the request body
     const body = await request.json();
-
-    // Forward the request to the Express backend
-    const url = `/direct-api/${path}`;
-    const res = await fetch(url, {
+    const apiUrl = `http://localhost:5000/api${apiPath}${search}`;
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(request.headers.has('Authorization') && 
-           { 'Authorization': request.headers.get('Authorization') as string }),
       },
       body: JSON.stringify(body),
     });
-
-    // Get the response data
-    const data = await res.json();
-
-    // Return the response
+    
+    const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error(`Error proxying POST request to /api/${path}:`, error);
+    console.error('API proxy error:', error);
     return NextResponse.json(
-      { error: 'Failed to submit data to the server' },
+      { error: 'Failed to fetch data from API' },
       { status: 500 }
     );
   }
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { path: string[] } }
-) {
-  const path = params.path.join('/');
-  try {
-    // Get the request body
-    const body = await request.json();
-
-    // Forward the request to the Express backend
-    const url = `/direct-api/${path}`;
-    const res = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(request.headers.has('Authorization') && 
-           { 'Authorization': request.headers.get('Authorization') as string }),
-      },
-      body: JSON.stringify(body),
-    });
-
-    // Get the response data
-    const data = await res.json();
-
-    // Return the response
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error(`Error proxying PUT request to /api/${path}:`, error);
-    return NextResponse.json(
-      { error: 'Failed to update data on the server' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { path: string[] } }
-) {
-  const path = params.path.join('/');
-  try {
-    // Forward the request to the Express backend
-    const url = `/direct-api/${path}${request.nextUrl.search}`;
-    const res = await fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(request.headers.has('Authorization') && 
-           { 'Authorization': request.headers.get('Authorization') as string }),
-      },
-    });
-
-    // Get the response data
-    const data = await res.json();
-
-    // Return the response
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error(`Error proxying DELETE request to /api/${path}:`, error);
-    return NextResponse.json(
-      { error: 'Failed to delete data on the server' },
-      { status: 500 }
-    );
-  }
-}

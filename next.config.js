@@ -24,41 +24,27 @@ const nextConfig = {
         hostname: '*.amazonaws.com',
       },
     ],
-    unoptimized: process.env.NODE_ENV === 'production', // For static export in production
+    unoptimized: process.env.NODE_ENV === 'production',
   },
-  webpack: (config, { dev }) => {
-    // Add support for importing SVGs as React components
+  // Set the output directory to match your server expectations
+  distDir: '.next',
+  // Configure webpack for SVG support
+  webpack: (config) => {
     config.module.rules.push({
       test: /\.svg$/,
       use: ['@svgr/webpack'],
     });
-    
-    // Disable persistent caching in development to prevent filesystem errors
-    if (dev) {
-      config.cache = false;
-    }
-    
     return config;
   },
-  // Use memory limits to reduce filesystem operations
-  onDemandEntries: {
-    maxInactiveAge: 60 * 60 * 1000, // 1 hour
-    pagesBufferLength: 2,
-  },
-  // Allow specific origins in development
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: '*',
-          },
-        ],
-      },
-    ];
-  },
-};
+  // Use serverExternalPackages instead of serverComponentsExternalPackages
+  serverExternalPackages: ['mongodb'],
+  // Other experimental features
+  experimental: {
+    esmExternals: true
+  }
+}
 
 export default nextConfig;
+
+
+

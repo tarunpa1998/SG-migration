@@ -1,6 +1,13 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
 import UniversityDetailClient from './university-detail-client';
+import { notFound } from 'next/navigation';
+
+interface UniversityPageProps {
+  params: Promise<{
+    slug: string;
+  }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
 
 // Types
 interface University {
@@ -28,15 +35,30 @@ interface University {
   overview?: string;
   facilities?: string[];
   highlights?: string[];
+  tuitionFees?: {
+    international?: string;
+    domestic?: string;
+  };
+  admissionRequirements?: string;
 }
 
-// Fetch university data server-side with ISR
-async function getUniversity(slug: string): Promise<University | null> {
+interface Scholarship {
+  id: number | string;
+  title: string;
+  description: string;
+  content?: string;
+  amount: string;
+  deadline: string;
+  country: string;
+  tags: string[];
+  slug: string;
+}
+
+// Fetch university data
+async function getUniversity(slug: string) {
   try {
-    const response = await fetch(`http://localhost:5000/api/universities/${slug}`, {
-      next: {
-        revalidate: 3600 // Revalidate every hour
-      }
+    const response = await fetch(`${process.env.API_BASE_URL || 'http://localhost:5000'}/api/universities/${slug}`, {
+      next: { revalidate: 3600 } // Revalidate every hour
     });
     
     if (!response.ok) {
@@ -45,74 +67,73 @@ async function getUniversity(slug: string): Promise<University | null> {
     
     return await response.json();
   } catch (error) {
-    console.error('Failed to fetch university:', error);
+    console.error('Error fetching university:', error);
     return null;
   }
 }
 
-// Get scholarships for this university's country
-async function getCountryScholarships(countryName: string | undefined) {
-  if (!countryName) return [];
-  
+// Fetch all scholarships
+async function getAllScholarships() {
   try {
-    const response = await fetch('http://localhost:5000/api/scholarships', {
-      next: {
-        revalidate: 3600 // Revalidate every hour
-      }
+    const response = await fetch(`${process.env.API_BASE_URL || 'http://localhost:5000'}/api/scholarships`, {
+      next: { revalidate: 3600 } // Revalidate every hour
     });
     
     if (!response.ok) {
       return [];
     }
     
-    const scholarships = await response.json();
-    return scholarships
-      .filter((scholarship: any) => scholarship.country === countryName)
-      .slice(0, 3);
-      
+    return await response.json();
   } catch (error) {
-    console.error('Failed to fetch scholarships:', error);
+    console.error('Error fetching all scholarships:', error);
     return [];
   }
 }
 
-// Generate metadata for SEO
-export async function generateMetadata(
-  { params }: { params: { slug: string } }
-): Promise<Metadata> {
-  // Fetch university data
-  const university = await getUniversity(params.slug);
+// Generate metadata for the page dynamically based on the university data
+export async function generateMetadata({
+  params,
+}: UniversityPageProps): Promise<Metadata> {
+  // Ensure params is properly typed and accessed
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
+  const university = await getUniversity(slug);
   
   if (!university) {
     return {
       title: 'University Not Found | Study Guru',
-      description: 'The requested university could not be found.'
+      description: 'The university you were looking for could not be found.',
     };
   }
   
+  // Return the metadata
   return {
-    title: university.seo?.metaTitle || `${university.name} | Study Guru`,
-    description: university.seo?.metaDescription || university.description.substring(0, 160),
-    keywords: university.seo?.keywords || `${university.name}, study at ${university.name}, programs at ${university.name}, ${university.country} university`,
-    openGraph: {
-      title: `${university.name} - Study Abroad | Study Guru`,
-      description: university.description,
-      type: 'website',
-      images: university.imageUrl ? [{ url: university.imageUrl }] : [],
-    }
+    title: `${university.name} | Study Guru Universities`,
+    description: university.description || `Learn about ${university.name} - programs, admissions, and more.`,
+    // Add more metadata as needed
   };
 }
 
-// Server Component for University Page
-export default async function UniversityPage({ params }: { params: { slug: string } }) {
-  const university = await getUniversity(params.slug);
+export default async function UniversityPage({
+  params,
+}: UniversityPageProps) {
+  // Ensure params is properly typed and accessed
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
+  const university = await getUniversity(slug);
   
   if (!university) {
-    notFound();
+    return notFound();
   }
   
-  // Get scholarships for this university's country
-  const scholarships = await getCountryScholarships(university.country);
+  // Fetch all scholarships for related scholarships section
+  const allScholarships = await getAllScholarships();
+  
+  // Filter to get scholarships for the university's country
+  const scholarships = allScholarships
+    .filter((s: Scholarship) => s.country === university.country)
+    .slice(0, 5); // Limit to 5 scholarships
   
   return <UniversityDetailClient university={university} scholarships={scholarships} />;
 }
+

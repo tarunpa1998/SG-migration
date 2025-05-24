@@ -68,11 +68,11 @@ export default async function UniversitiesPage() {
   const universitiesByCountry = groupUniversitiesByCountry(universities);
   
   // Get featured universities for the top section
-  const featuredUniversities = universities.filter(university => university.featured);
+  const featuredUniversities = universities.filter((university: University) => university.featured);
   // Sort universities by ranking (if available)
   const topRankedUniversities = [...universities]
-    .filter(university => university.ranking)
-    .sort((a, b) => (a.ranking || 0) - (b.ranking || 0))
+    .filter((university: University) => university.ranking)
+    .sort((a: University, b: University) => (a.ranking || 0) - (b.ranking || 0))
     .slice(0, 10);
   
   return (
@@ -102,3 +102,4 @@ export default async function UniversitiesPage() {
     </div>
   );
 }
+

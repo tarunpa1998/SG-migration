@@ -1,90 +1,36 @@
-import { NextRequest } from 'next/server';
-import { handleApiError, successResponse } from '@/lib/api-utils';
-import connectToDatabase from '@/lib/mongodb';
-import { News } from '@/models';
+import { NextRequest, NextResponse } from 'next/server';
 
+// This route handles fetching a single news item by slug
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
+  const resolvedParams = await params;
+  const { slug } = resolvedParams;
+  
   try {
-    // Connect to MongoDB
-    await connectToDatabase();
+    // Forward the request to our Express backend
+    const response = await fetch(`http://localhost:5000/api/news/${slug}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
     
-    // Get slug from URL
-    const { slug } = params;
-    
-    // Find news item by slug
-    const newsItem = await News.findOne({ slug });
-    
-    // Return 404 if not found
-    if (!newsItem) {
-      return successResponse({ error: 'News item not found' }, 404);
+    // Handle 404 case
+    if (response.status === 404) {
+      return NextResponse.json(
+        { error: 'News item not found' },
+        { status: 404 }
+      );
     }
     
-    // Increment view count
-    newsItem.views = (newsItem.views || 0) + 1;
-    await newsItem.save();
-    
-    return successResponse(newsItem);
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error) {
-    return handleApiError(error);
-  }
-}
-
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { slug: string } }
-) {
-  try {
-    // Connect to MongoDB
-    await connectToDatabase();
-    
-    // Get slug from URL
-    const { slug } = params;
-    
-    // Parse request body
-    const data = await request.json();
-    
-    // Find and update news item
-    const newsItem = await News.findOneAndUpdate(
-      { slug },
-      { $set: data },
-      { new: true, runValidators: true }
+    console.error(`News API error for slug ${slug}:`, error);
+    return NextResponse.json(
+      { error: 'Failed to fetch news item' },
+      { status: 500 }
     );
-    
-    // Return 404 if not found
-    if (!newsItem) {
-      return successResponse({ error: 'News item not found' }, 404);
-    }
-    
-    return successResponse(newsItem);
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
-
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { slug: string } }
-) {
-  try {
-    // Connect to MongoDB
-    await connectToDatabase();
-    
-    // Get slug from URL
-    const { slug } = params;
-    
-    // Find and delete news item
-    const result = await News.findOneAndDelete({ slug });
-    
-    // Return 404 if not found
-    if (!result) {
-      return successResponse({ error: 'News item not found' }, 404);
-    }
-    
-    return successResponse({ message: 'News item deleted successfully' });
-  } catch (error) {
-    return handleApiError(error);
   }
 }

@@ -33,7 +33,7 @@ export function useAdminRoute(redirectTo = '/') {
     if (!isLoading) {
       if (!user) {
         router.push('/login');
-      } else if (user.role !== 'admin') {
+      } else if (!user.isAdmin) {
         router.push(redirectTo);
       }
     }

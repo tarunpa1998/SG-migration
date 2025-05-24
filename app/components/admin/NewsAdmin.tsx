@@ -215,7 +215,7 @@ const NewsAdmin = () => {
         seo: {
           ...editForm.seo,
           keywords: typeof editForm.seo.keywords === 'string' 
-            ? editForm.seo.keywords.split(',').map(k => k.trim()).filter(Boolean) 
+            ? String(editForm.seo.keywords).split(',').map(k => k.trim()).filter(Boolean) 
             : editForm.seo.keywords
         }
       };
@@ -296,7 +296,7 @@ const NewsAdmin = () => {
         setEditForm({
           ...editForm,
           [parent]: {
-            ...editForm[parentKey],
+            ...(typeof editForm[parentKey] === 'object' && editForm[parentKey] !== null ? editForm[parentKey] : {}),
             [child]: value
           }
         });
@@ -752,3 +752,6 @@ const NewsAdmin = () => {
 };
 
 export default NewsAdmin;
+
+
+

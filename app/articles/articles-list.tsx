@@ -33,6 +33,8 @@ interface Article {
   image?: string;
   category: string;
   author?: string;
+  authorTitle?: string;
+  authorImage?: string;
   readingTime?: string;
   tags?: string[];
 }
@@ -287,7 +289,18 @@ export default function ArticlesList({ initialArticles }: ArticlesListProps) {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {currentArticles.map((article) => (
-              <ArticleCard key={article.id} article={article} />
+              <ArticleCard
+                key={article.id}
+                title={article.title}
+                summary={article.summary}
+                slug={article.slug}
+                publishDate={article.publishDate}
+                author={article.author || ''}
+                authorTitle={article.authorTitle || ''}
+                authorImage={article.authorImage || ''}
+                image={article.image || ''}
+                category={article.category}
+              />
             ))}
           </div>
           
@@ -326,3 +339,5 @@ export default function ArticlesList({ initialArticles }: ArticlesListProps) {
     </div>
   );
 }
+
+

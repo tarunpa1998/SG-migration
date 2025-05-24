@@ -1,7 +1,10 @@
 {
   "include": [
-    "client/src/**/*",
-    "server/**/*",
+    "app/**/*",
+    "pages/**/*",
+    "components/**/*",
+    "lib/**/*",
+    "models/**/*",
     "shared/**/*",
     ".next/types/**/*.ts"
   ],
@@ -29,16 +32,14 @@
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "types": [
-      "node",
-      "vite/client"
+      "node"
     ],
     "paths": {
-      "@/*": [
-        "./client/src/*"
-      ],
-      "@shared/*": [
-        "./shared/*"
-      ]
+      "@/*": ["./app/*"],
+      "@/components/*": ["./app/components/*"],
+      "@/lib/*": ["./app/lib/*"],
+      "@/hooks/*": ["./app/hooks/*"],
+      "@/contexts/*": ["./app/contexts/*"]
     },
     "target": "ES2017",
     "allowJs": true,
@@ -51,3 +52,8 @@
     ]
   }
 }
+
+
+
+
+

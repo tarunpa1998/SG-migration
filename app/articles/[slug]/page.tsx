@@ -3,9 +3,10 @@ import ArticleDetail from './article-detail';
 import { notFound } from 'next/navigation';
 
 interface ArticlePageProps {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 // Fetch article data
@@ -47,11 +48,10 @@ async function getAllArticles() {
 // Generate metadata for the page dynamically based on the article data
 export async function generateMetadata({
   params,
-}: {
-  params: { slug: string };
-}): Promise<Metadata> {
+}: ArticlePageProps): Promise<Metadata> {
   // Ensure params is properly typed and accessed
-  const slug = params.slug;
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
   const article = await getArticle(slug);
   
   if (!article) {
@@ -61,27 +61,20 @@ export async function generateMetadata({
     };
   }
   
+  // Return the metadata
   return {
-    title: article.seo?.metaTitle || `${article.title} | Study Guru`,
-    description: article.seo?.metaDescription || article.summary,
-    keywords: article.seo?.keywords || article.tags,
-    openGraph: {
-      title: article.seo?.metaTitle || article.title,
-      description: article.seo?.metaDescription || article.summary,
-      type: 'article',
-      url: `${process.env.NEXT_PUBLIC_BASE_URL}/articles/${slug}`,
-      images: article.image ? [{ url: article.image }] : [],
-    },
+    title: `${article.title} | Study Guru`,
+    description: article.excerpt || 'Read this informative article on Study Guru',
+    // Add more metadata as needed
   };
 }
 
 export default async function ArticlePage({
   params,
-}: {
-  params: { slug: string };
-}) {
+}: ArticlePageProps) {
   // Ensure params is properly typed and accessed
-  const slug = params.slug;
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
   const article = await getArticle(slug);
   
   if (!article) {

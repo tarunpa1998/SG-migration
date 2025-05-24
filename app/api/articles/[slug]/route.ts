@@ -3,9 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 // This route handles fetching a single article by slug
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = params;
+  const resolvedParams = await params;
+  const { slug } = resolvedParams;
   
   try {
     // Forward the request to our Express backend
