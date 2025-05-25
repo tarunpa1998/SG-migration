@@ -3,19 +3,36 @@
  */
 
 export async function fetchAPI(endpoint: string, options?: RequestInit) {
-  const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
-  const url = `${baseUrl}${endpoint}`;
-  
   try {
-    // For server-side requests with Next.js, we need to use the cache options
-    // The TS types don't match the actual API, so we use any to avoid issues
+    // Determine the base URL based on environment
+    const baseUrl = typeof window === 'undefined' 
+      ? (process.env.NEXT_PUBLIC_API_URL || process.env.API_BASE_URL || 'http://localhost:5000')
+      : '';
+    
+    // Use absolute URL for server-side requests, relative URL for client-side
+    const url = typeof window === 'undefined'
+      ? `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`
+      : (endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`);
+    
     const fetchOptions: any = {
-      ...options
+      ...options,
+      // Add Next.js cache config (for ISR) when running on server
+      next: { revalidate: 60 } // 60 seconds
     };
     
-    // Add Next.js cache config (for ISR) when running on server
-    if (typeof window === 'undefined') {
-      fetchOptions.next = { revalidate: 60 }; // 60 seconds
+    // During build, return empty data instead of failing
+    if (process.env.NODE_ENV === 'production' && typeof window === 'undefined') {
+      try {
+        const response = await fetch(url, fetchOptions);
+        if (!response.ok) {
+          console.warn(`API request failed during build: ${url}`);
+          return [];
+        }
+        return await response.json();
+      } catch (error) {
+        console.warn(`API request failed during build: ${url}`, error);
+        return [];
+      }
     }
     
     const response = await fetch(url, fetchOptions);
@@ -26,7 +43,7 @@ export async function fetchAPI(endpoint: string, options?: RequestInit) {
     
     return await response.json();
   } catch (error) {
-    console.error(`Error fetching ${url}:`, error);
+    console.error(`Error fetching ${endpoint}:`, error);
     return [];  // Return empty array as default to prevent undefined errors
   }
 }
@@ -51,3 +68,5 @@ export async function fetchScholarships() {
 export async function fetchUniversities() {
   return fetchAPI('/api/universities');
 }
+
+

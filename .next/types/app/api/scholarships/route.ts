@@ -1,4 +1,4 @@
-// File: D:\downloads\git changes\migration\Sg-with-ssr-migration-10-again\app\api\scholarships\route.ts
+// File: /mnt/d/downloads/git changes/migration/Sg-with-ssr-migration-10-again/app/api/scholarships/route.ts
 import * as entry from '../../../../../app/api/scholarships/route.js'
 import type { NextRequest } from 'next/server.js'
 

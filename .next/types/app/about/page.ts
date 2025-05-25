@@ -1,4 +1,4 @@
-// File: D:\downloads\git changes\migration\Sg-with-ssr-migration-10-again\app\about\page.tsx
+// File: /mnt/d/downloads/git changes/migration/Sg-with-ssr-migration-10-again/app/about/page.tsx
 import * as entry from '../../../../app/about/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

@@ -26,7 +26,8 @@ const nextConfig = {
     ],
     unoptimized: process.env.NODE_ENV === 'production',
   },
-  // Set the output directory to match your server expectations
+  // Use the standalone output option for better deployment
+  output: 'standalone',
   distDir: '.next',
   // Configure webpack for SVG support
   webpack: (config) => {
@@ -36,15 +37,25 @@ const nextConfig = {
     });
     return config;
   },
-  // Use serverExternalPackages instead of serverComponentsExternalPackages
+  // External packages
   serverExternalPackages: ['mongodb'],
   // Other experimental features
   experimental: {
-    esmExternals: true
-  }
+    esmExternals: true,
+    // Add memory optimizations
+    webpackMemoryOptimizations: true
+  },
+  // Add environment variables
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+  },
+  // Disable static generation for pages that fetch data
+  // This will prevent build-time fetch errors
+  staticPageGenerationTimeout: 120,
 }
 
 export default nextConfig;
+
 
 
 

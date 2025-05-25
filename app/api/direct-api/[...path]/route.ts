@@ -23,6 +23,10 @@ export async function GET(
         // Forward authorization header if present
         ...(request.headers.get('authorization') 
           ? { 'Authorization': request.headers.get('authorization')! } 
+          : {}),
+        // Forward other important headers
+        ...(request.headers.get('x-forwarded-for')
+          ? { 'X-Forwarded-For': request.headers.get('x-forwarded-for')! }
           : {})
       },
       // Include cookies in the request
@@ -64,6 +68,10 @@ export async function POST(
         // Forward authorization header if present
         ...(request.headers.get('authorization') 
           ? { 'Authorization': request.headers.get('authorization')! } 
+          : {}),
+        // Forward other important headers
+        ...(request.headers.get('x-forwarded-for')
+          ? { 'X-Forwarded-For': request.headers.get('x-forwarded-for')! }
           : {})
       },
       body: JSON.stringify(body),
@@ -102,6 +110,10 @@ export async function DELETE(
         // Forward authorization header if present
         ...(request.headers.get('authorization') 
           ? { 'Authorization': request.headers.get('authorization')! } 
+          : {}),
+        // Forward other important headers
+        ...(request.headers.get('x-forwarded-for')
+          ? { 'X-Forwarded-For': request.headers.get('x-forwarded-for')! }
           : {})
       },
       // Include cookies in the request
@@ -121,3 +133,4 @@ export async function DELETE(
     );
   }
 }
+
